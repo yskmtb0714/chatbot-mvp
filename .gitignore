@@ -1,0 +1,33 @@
+# Python cache/venv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.env
+*.log
+
+# Node dependencies
+/frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+# Lockfiles (必要に応じてコメント解除)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor specific
+.vscode/
+*.code-workspace
+
+# Build outputs (後で必要なら追加)
+# /frontend/dist
+# /build
