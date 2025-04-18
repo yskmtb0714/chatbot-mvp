@@ -1,4 +1,4 @@
-# backend/app.py - Final combined version
+# backend/app.py - Final combined version (hopefully!)
 import os
 import traceback
 import re
@@ -175,7 +175,6 @@ def chat():
     user_query = data['query'].strip()
     print(f"User query: '{user_query}'")
 
-    # 意図解釈
     intent = detect_intent(user_query)
     print(f"Detected intent: {intent}")
 
@@ -191,12 +190,13 @@ def chat():
             print("Error: FAQ intent detected but get_faq_answer returned None.")
             intent = "general_chat" # フォールバック
             print(f"Falling back to intent: {intent}")
-            # この下の general_chat 処理に進むように return しない
+            # この下の general_chat 処理に進む
 
     # FAQでなかった、またはFAQで見つからずフォールバックした場合
-    if intent == "product_info": # elif ではなく if にしてフォールバックを受け入れる
+    # intent が "general_chat" に上書きされている可能性があるので、 if を使う
+    if intent == "product_info": 
         response_text = get_product_info_handler(user_query)
-        print("--- Handling as Product Info (RAG) ---") # RAGであることを明記
+        print("--- Handling as Product Info (RAG) ---")
         return jsonify({"response": response_text})
 
     elif intent == "order_status":
