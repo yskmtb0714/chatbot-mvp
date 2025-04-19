@@ -30,12 +30,12 @@ const sendMessage = async () => {
   // メッセージが空か、既にリクエスト送信中の場合は何もしない
   if (userMessage === '' || isLoading.value) return;
 
-  // ユーザーのメッセージを履歴に追加
-  chatHistory.value.push({ sender: 'user', text: userMessage });
+  // ユーザーのメッセージを履歴に追加 (type: 'message' を明示)
+  chatHistory.value.push({ sender: 'user', text: userMessage, type: 'message' });
   console.log('送信するメッセージ:', userMessage);
   const messageToSend = message.value; // APIに送るメッセージを一時保存
   message.value = ''; // 送信したら入力欄をクリア
-  isLoading.value = true; // ローディング状態にする
+  isLoading.value = true; // ★ ローディング開始状態にする
 
   try {
     // バックエンドAPI (http://localhost:5000/chat) を呼び出す
@@ -44,12 +44,12 @@ const sendMessage = async () => {
     });
     console.log('バックエンドからの応答:', response.data);
 
-    // AIの応答を履歴に追加
+    // AIの応答を履歴に追加 (type: 'message' を明示)
     if (response.data && response.data.response) {
-      chatHistory.value.push({ sender: 'ai', text: response.data.response });
+      chatHistory.value.push({ sender: 'ai', text: response.data.response, type: 'message' });
     } else {
-      // バックエンドから期待した形式の応答が返ってこなかった場合
-      chatHistory.value.push({ sender: 'ai', text: 'AIから予期しない応答がありました。' });
+      // バックエンドから期待した形式の応答が返ってこなかった場合もエラー扱い
+      chatHistory.value.push({ sender: 'ai', text: 'AIから予期しない応答がありました。', type: 'error' });
     }
 
   } catch (error) {
@@ -57,17 +57,21 @@ const sendMessage = async () => {
     console.error('API呼び出しエラー:', error);
     let errorMessage = 'エラーが発生しました。';
      if (error.response) {
-       // バックエンドからエラー応答が返ってきた場合
+       // バックエンドからエラー応答(例: 500)が返ってきた場合
        errorMessage = `エラー (ステータス: ${error.response.status})`;
+       // もしバックエンドがエラー詳細を返すなら、それを表示することも可能
+       // if (error.response.data && error.response.data.error) {
+       //   errorMessage += `: ${error.response.data.error}`;
+       // }
      } else if (error.request) {
-       // バックエンドから応答が全くなかった場合
+       // バックエンドから応答が全くなかった場合 (net::ERR_FAILEDなど)
        errorMessage = 'サーバーから応答がありません。バックエンドは起動していますか？';
      }
-    // エラーメッセージを履歴に追加
-    chatHistory.value.push({ sender: 'ai', text: errorMessage });
+    // エラーメッセージを type: 'error' 付きで履歴に追加
+    chatHistory.value.push({ sender: 'ai', text: errorMessage, type: 'error' });
   } finally {
     // 成功・失敗に関わらずローディング状態を解除
-    isLoading.value = false;
+    isLoading.value = false; // ★ ローディング終了状態にする
   }
 };
 </script>
@@ -77,18 +81,21 @@ const sendMessage = async () => {
     <h1>チャットボット MVP</h1>
 
     <div class="chat-history" ref="chatHistoryRef">
-      <div v-if="chatHistory.length === 0" class="no-messages">
+      <div v-if="chatHistory.length === 0 && !isLoading" class="no-messages">
         メッセージを入力して会話を開始してください。
       </div>
       <div v-for="(msg, index) in chatHistory" :key="index"
            :class="['message-wrapper', msg.sender === 'user' ? 'user-wrapper' : 'ai-wrapper']">
-        <div :class="['message', msg.sender === 'user' ? 'user-message' : 'ai-message']">
+         <div :class="['message',
+                       msg.sender === 'user' ? 'user-message' : 'ai-message',
+                       msg.type === 'error' ? 'error-message' : '']">
           <span class="text">{{ msg.text }}</span>
         </div>
       </div>
-      <div v-if="isLoading" class="message-wrapper ai-wrapper">
+      <div v-if="isLoading" class="message-wrapper ai-wrapper loading-indicator">
           <div class="message ai-message loading-message">
-              <span class="text">考え中...</span>
+              <div class="spinner"></div>
+              <span class="text loading-text">AIが考え中...</span>
           </div>
       </div>
     </div>
@@ -110,157 +117,175 @@ const sendMessage = async () => {
 </template>
 
 <style scoped>
-/* App.vue スタイル全体 - 微調整版 */
+/* スタイル定義 - 前回調整したもの + ローディング/エラー用スタイル */
 #app-container {
-  max-width: 650px; /* 最大幅を少し広げる */
-  margin: 25px auto; /* 上下マージン調整 */
-  padding: 25px; /* 内側パディング */
-  border: 1px solid #e0e0e0; /* 枠線の色 */
-  border-radius: 10px; /* 角の丸み */
-  font-family: "Segoe UI", Meiryo, system-ui, sans-serif; /* フォント (メイリオ追加) */
-  display: flex;
-  flex-direction: column;
-  height: 88vh; /* 高さを少し調整 */
-  box-shadow: 0 5px 15px rgba(0,0,0,0.12); /* 影を調整 */
-  background-color: #ffffff; /* 背景色 */
+  max-width: 650px; 
+  margin: 25px auto; 
+  padding: 25px;
+  border: 1px solid #e0e0e0; 
+  border-radius: 10px; 
+  font-family: "Segoe UI", Meiryo, system-ui, sans-serif; 
+  display: flex; 
+  flex-direction: column; 
+  height: 88vh; 
+  box-shadow: 0 5px 15px rgba(0,0,0,0.12); 
+  background-color: #ffffff; 
 }
 
 h1 {
   text-align: center;
-  color: #343a40; /* 見出しの色 */
-  margin-bottom: 20px; /* 下マージン調整 */
-  flex-shrink: 0;
+  color: #343a40; 
+  margin-bottom: 20px; 
+  flex-shrink: 0; 
   font-weight: 600;
-  font-size: 1.4em; /* 文字サイズ調整 */
+  font-size: 1.4em; 
 }
 
 .chat-history {
-  flex-grow: 1;
-  overflow-y: auto; /* スクロール */
-  border: none; /* 履歴エリアの枠線削除 */
-  border-radius: 8px;
-  padding: 15px; /* パディング調整 */
-  margin-bottom: 20px; /* 下マージン調整 */
-  background-color: #f8f9fa; /* 履歴エリアの背景色 */
+  flex-grow: 1; 
+  overflow-y: auto; 
+  border: none; 
+  border-radius: 8px; 
+  padding: 15px; 
+  margin-bottom: 20px; 
+  background-color: #f8f9fa; 
 }
-/* スクロールバーの見た目調整（Chrome, Edge, Safariなど） */
-.chat-history::-webkit-scrollbar {
-  width: 8px;
-}
-.chat-history::-webkit-scrollbar-thumb {
-  background-color: #ced4da; /* スクロールバーの色 */
-  border-radius: 4px;
-}
-.chat-history::-webkit-scrollbar-track {
-  background-color: #f1f1f1; /* スクロールバーの背景 */
-}
+.chat-history::-webkit-scrollbar { width: 8px; }
+.chat-history::-webkit-scrollbar-thumb { background-color: #ced4da; border-radius: 4px; }
+.chat-history::-webkit-scrollbar-track { background-color: #f1f1f1; }
 
 .no-messages {
     text-align: center;
-    color: #aaa;
-    padding: 40px 20px; /* パディング調整 */
+    color: #aaa; 
+    padding: 40px 20px; 
     font-style: italic;
 }
 
 .message-wrapper {
-  margin-bottom: 15px; /* メッセージ間のスペース */
+  margin-bottom: 15px; 
   display: flex;
 }
 
 .user-wrapper {
-  justify-content: flex-end; /* ユーザーメッセージを右寄せ */
+  justify-content: flex-end; 
 }
 
 .ai-wrapper {
-  justify-content: flex-start; /* AIメッセージを左寄せ */
+  justify-content: flex-start; 
 }
 
 .message {
-  padding: 10px 16px; /* メッセージ内のパディング */
-  border-radius: 18px; /* 角の丸み */
-  display: inline-block;
-  max-width: 78%; /* メッセージの最大幅 */
-  word-wrap: break-word;
-  line-height: 1.5; /* 行間 */
-  box-shadow: 0 2px 3px rgba(0,0,0,0.08); /* 影 */
-  position: relative;
+  padding: 10px 16px; 
+  border-radius: 18px; 
+  display: inline-block; 
+  max-width: 78%; 
+  word-wrap: break-word; 
+  line-height: 1.5; 
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1); 
+  position: relative; 
 }
 
 .user-message {
-  background-color: #0d6efd; /* ユーザーメッセージの背景色 (青系) */
+  background-color: #0d6efd; 
   color: white;
-  border-bottom-right-radius: 6px; /* 右下に少し角 */
+  border-bottom-right-radius: 6px; 
 }
 
 .ai-message {
-  background-color: #e9ecef; /* AIメッセージの背景色 (グレー系) */
-  color: #212529;
-  border-bottom-left-radius: 6px; /* 左下に少し角 */
+  background-color: #e9ecef; 
+  color: #212529; 
+  border-bottom-left-radius: 6px; 
 }
 
-.loading-message .text { 
-    font-style: italic; /* 斜体にする */
-    color: #6c757d;     /* テキスト色をグレーに */
-    background-color: #f8f9fa !important; /* 背景を履歴エリアに近づける (ai-messageより優先) */
-    /* 点滅アニメーションなどを追加するとより分かりやすいですが、まずはここまで */
-    padding: 10px 16px; /* 通常メッセージと合わせる */
-    border-radius: 18px;
+/* --- ★ ローディング表示用スタイル ★ --- */
+
+.loading-message { /* 「考え中」の吹き出し自体のスタイル */
+  background-color: transparent !important; /* 背景を透過 */
+  border: none !important; /* 枠線も消す */
+  box-shadow: none !important; /* 影も消す */
+  padding-top: 5px; 
+  padding-bottom: 5px;
+  display: flex; /* スピナーとテキストを横並び */
+  align-items: center; /* 縦方向中央揃え */
+}
+.loading-text { 
+    font-style: italic;
+    color: #6c757d; 
+    margin-left: 8px; /* スピナーとの間隔 */
+}
+.spinner {
+    border: 3px solid #f0f0f0; /* スピナーの背景色 */
+    border-top: 3px solid #6c757d; /* スピナーの色 */
+    border-radius: 50%;
+    width: 16px; /* スピナーのサイズ */
+    height: 16px;
+    animation: spin 1s linear infinite; /* 回転アニメーション */
     display: inline-block;
-    box-shadow: none; /* 影を消す */
 }
-/* ローディングメッセージのラッパーにもスタイルを適用（任意） */
-.loading-message {
-    /* background: none !important; */ /* 背景を透過させる場合など */
-    box-shadow: none !important; /* 影を消す */
+@keyframes spin { /* 回転アニメーションの定義 */
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
+/* --- ★ ローディング表示用スタイルここまで ★ --- */
 
-.text {
-  white-space: pre-wrap; /* テキストの改行を反映 */
+/* --- ★ エラーメッセージ用スタイル ★ --- */
+.error-message { /* .message にこのクラスが付与される */
+  background-color: #f8d7da !important; /* 薄い赤背景 (!importantで他の背景色指定を上書き) */
+  color: #721c24 !important;           /* 濃い赤テキスト */
+  border: 1px solid #f5c6cb;         /* 赤系の枠線 */
+}
+/* aiメッセージとして表示されるエラーの場合の調整 */
+.ai-wrapper .error-message {
+   border-bottom-left-radius: 6px; /* 他のAIメッセージと角の丸みを合わせる */
+}
+/* --- ★ エラーメッセージ用スタイルここまで ★ --- */
+
+.text { 
+  white-space: pre-wrap; 
 }
 
 .input-area {
   display: flex;
-  align-items: center;
-  margin-top: auto; /* 下部に固定 */
-  flex-shrink: 0;
-  padding-top: 15px;
+  align-items: center; 
+  margin-top: auto; 
+  flex-shrink: 0; 
+  padding-top: 15px; 
   border-top: 1px solid #eee;
 }
 
 .input-area input[type="text"] {
   flex-grow: 1;
   margin-right: 10px;
-  padding: 11px 16px; /* 入力欄のパディング */
-  border: 1px solid #ced4da; /* 枠線の色 */
-  border-radius: 20px; /* 角の丸み */
-  font-size: 1rem;
+  padding: 11px 16px; 
+  border: 1px solid #ced4da; 
+  border-radius: 20px; 
+  font-size: 1rem; 
 }
-/* 入力欄がフォーカスされた時のスタイル */
-.input-area input[type="text"]:focus {
+.input-area input[type="text"]:focus { 
   outline: none;
-  border-color: #86b7fe; /* フォーカス時の色 */
-  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25); /* フォーカス時の影 */
+  border-color: #86b7fe; 
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25); 
 }
 
 .input-area button {
-  padding: 11px 20px; /* ボタンのパディング */
+  padding: 11px 20px; 
   border: none;
-  background-color: #0d6efd; /* ボタンの色 */
+  background-color: #0d6efd; 
   color: white;
-  border-radius: 20px; /* 角の丸み */
+  border-radius: 20px; 
   cursor: pointer;
   font-size: 1rem;
-  font-weight: 500;
-  transition: background-color 0.2s ease; /* ホバー時の色変化を滑らかに */
-  flex-shrink: 0;
+  font-weight: 500; 
+  transition: background-color 0.2s ease; 
+  flex-shrink: 0; 
 }
 
 .input-area button:disabled {
-  background-color: #adb5bd; /* 無効時の色 */
+  background-color: #adb5bd; 
   cursor: not-allowed;
 }
 
 .input-area button:hover:not(:disabled) {
-  background-color: #0b5ed7; /* ホバー時の色 */
+  background-color: #0b5ed7; 
 }
 </style>
