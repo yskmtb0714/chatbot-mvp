@@ -78,43 +78,42 @@ const sendMessage = async () => {
 
 <template>
   <div id="app-container">
-    <h1>チャットボット MVP</h1>
+    <h1>AI Chatbot MVP</h1> 
 
-    <div class="chat-history" ref="chatHistoryRef">
+    <div class="chat-history" ref="chatHistoryRef"> 
       <div v-if="chatHistory.length === 0 && !isLoading" class="no-messages">
-        メッセージを入力して会話を開始してください。
+        Type a message below to start the conversation.
       </div>
-      <div v-for="(msg, index) in chatHistory" :key="index"
+      <div v-for="(msg, index) in chatHistory" :key="index" 
            :class="['message-wrapper', msg.sender === 'user' ? 'user-wrapper' : 'ai-wrapper']">
-         <div :class="['message',
+        <div :class="['message', 
                        msg.sender === 'user' ? 'user-message' : 'ai-message',
-                       msg.type === 'error' ? 'error-message' : '']">
+                       msg.type === 'error' ? 'error-message' : '']"> 
           <span class="text">{{ msg.text }}</span>
-        </div>
-      </div>
+        </div> 
+      </div> 
       <div v-if="isLoading" class="message-wrapper ai-wrapper loading-indicator">
-          <div class="message ai-message loading-message">
-              <div class="spinner"></div>
-              <span class="text loading-text">AIが考え中...</span>
-          </div>
-      </div>
-    </div>
+          <div class="message ai-message loading-message"> 
+              <div class="spinner"></div> 
+              <span class="text loading-text">AI is thinking...</span> 
+          </div> 
+      </div> 
+    </div> 
 
     <div class="input-area">
       <input
         type="text"
         v-model="message"
-        placeholder="メッセージを入力してください..."
+        placeholder="Enter your message..." 
         @keyup.enter="sendMessage"
-        :disabled="isLoading"
+        :disabled="isLoading" 
       />
       <button @click="sendMessage" :disabled="isLoading">
-        {{ isLoading ? '送信中...' : '送信' }}
-      </button>
-    </div>
-
-  </div>
-</template>
+        {{ isLoading ? 'Sending...' : 'Send' }} 
+      </button> 
+    </div> 
+  </div> 
+</template> 
 
 <style scoped>
 /* スタイル定義 - 前回調整したもの + ローディング/エラー用スタイル */
