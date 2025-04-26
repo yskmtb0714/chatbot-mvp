@@ -12,8 +12,9 @@ The chatbot is designed to handle various user intents within a simulated e-comm
 
 ## Demo (Optional)
 
-*(ここに、アプリケーションが動作している様子の短いGIFアニメーションや動画へのリンクを挿入すると非常に効果的です)*
-*(A short GIF or video link demonstrating the application in action would be very effective here)*
+A quick demonstration of the chatbot in action:
+
+![Chatbot Demo GIF](assets/demo.gif)
 
 ## Features
 
